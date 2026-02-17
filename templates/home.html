@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block extra_styles %}
+<style>
+    /* 1. Enhanced Grid Layout */
+    .video-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 2rem;
+        padding: 1rem 0;
+    }
+
+    .video-card {
+        background: #181818;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.05);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        position: relative;
+    }
+
+    .video-card:hover {
+        transform: scale(1.03);
+        border-color: var(--accent);
+        box-shadow: 0 10px 30px rgba(255, 0, 0, 0.2);
+    }
+
+    /* 2. Advanced Thumbnail Effects */
+    .thumbnail-container {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        background: #000;
+        overflow: hidden;
+    }
+
+    .thumbnail-container img {
+        width: 100%; height: 100%;
+        object-fit: cover;
+        transition: transform 0.6s ease;
+    }
+
+    .video-card:hover img {
+        transform: scale(1.1);
+    }
+
+    .play-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .video-card:hover .play-overlay {
+        opacity: 1;
+    }
+
+    .play-icon-circle {
+        width: 60px;
+        height: 60px;
+        background: var(--accent);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+        box-shadow: 0 0 20px var(--accent);
+    }
+
+    /* 3. Action Buttons on Cards */
+    .card-actions {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: flex;
+        gap: 8px;
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: all 0.3s ease;
+    }
+
+    .video-card:hover .card-actions {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .action-btn {
+        background: rgba(0,0,0,0.7);
+        border: 1px solid rgba(255,255,255,0.2);
+        color: white;
+        width: 35px;
+        height: 35px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        backdrop-filter: blur(5px);
+    }
+
+    .action-btn:hover {
+        background: var(--accent);
+        border-color: var(--accent);
+    }
+
+    .video-info { padding: 1.2rem; }
+    .video-info h3 { 
+        font-size: 1.1rem; 
+        margin-bottom: 5px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .video-meta {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        display: flex;
+        justify-content: space-between;
+    }
+
+    /* 4. Empty State */
+    .no-videos {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 5rem;
+        background: var(--bg-card);
+        border-radius: 20px;
+        border: 2px dashed var(--glass-border);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="video-grid" id="videoGrid">
+    {% for video in videos %}
+    <div class="video-card" data-title="{{ video.title }}">
+        <div class="thumbnail-container" 
+             data-video-url="{{ url_for('stream_video', filename=video.name) }}"
+             onclick="openEnhancedVideo(this.dataset.videoUrl, '{{ video.title }}')">
+            
+            <img src="{{ url_for('serve_thumb', filename=video.thumb) }}" 
+                 alt="{{ video.title }}"
+                 loading="lazy"
+                 data-default="{{ url_for('serve_image', filename='default.jpg') }}"
+                 onerror="this.src=this.dataset.default; this.onerror=null;">
+            
+            <div class="card-actions" onclick="event.stopPropagation();">
+                <a href="{{ url_for('stream_video', filename=video.name) }}" download class="action-btn" title="Download">
+                    ⬇️
+                </a>
+            </div>
+
+            <div class="play-overlay">
+                <div class="play-icon-circle">▶</div>
+            </div>
+        </div>
+        
+        <div class="video-info">
+            <h3>{{ video.title }}</h3>
+            <div class="video-meta">
+                <span>MP4 Video</span>
+                <span>HD Ready</span>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="no-videos">
+        <h2 style="color: var(--accent); margin-bottom: 10px;">Empty Server</h2>
+        <p>No media files found in your local directory.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Enhanced Video Opener
+    function openEnhancedVideo(url, title) {
+        // Use the function in base.html but add more context
+        const video = document.getElementById('modalVideo');
+        
+        // Add a "Theater Mode" background glow if needed
+        document.getElementById('videoModal').style.background = "radial-gradient(circle, rgba(255,0,0,0.1) 0%, rgba(0,0,0,0.98) 100%)";
+        
+        openVideoModal(url);
+        
+        // Custom notification (optional)
+        console.log("Now Playing: " + title);
+    }
+</script>
+{% endblock %}

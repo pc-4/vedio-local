@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Local Hub - Private Media Server</title>
+    <style>
+        /* CSS Variables & Global Reset */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        :root {
+            --bg-primary: #0f0f0f; 
+            --bg-secondary: #1a1a1a; 
+            --bg-card: #1f1f1f;
+            --text-primary: #ffffff; 
+            --text-secondary: #aaaaaa; 
+            --accent: #ff0000;
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body { background-color: var(--bg-primary); color: var(--text-primary); min-height: 100vh; overflow-x: hidden; }
+
+        /* Navbar Styling */
+        .navbar { 
+            position: fixed; top: 0; left: 0; right: 0; 
+            background-color: var(--bg-secondary); 
+            padding: 0.75rem 2rem; 
+            display: flex; align-items: center; justify-content: space-between; 
+            z-index: 1000; border-bottom: 1px solid var(--glass-border); 
+        }
+        .nav-brand { font-size: 1.5rem; font-weight: bold; color: var(--accent); text-decoration: none; }
+        .nav-search { flex: 0 1 500px; margin: 0 2rem; }
+        .nav-search input { 
+            width: 100%; padding: 0.75rem 1.2rem; border-radius: 2rem; 
+            background-color: var(--bg-primary); color: var(--text-primary); 
+            border: 1px solid var(--glass-border); outline: none;
+        }
+        .nav-search input:focus { border-color: var(--accent); }
+
+        .nav-menu { display: flex; align-items: center; gap: 1rem; }
+        .nav-menu a { color: var(--text-primary); text-decoration: none; padding: 0.5rem 1.2rem; border-radius: 2rem; font-weight: 500; transition: 0.3s; }
+        .nav-menu a.active { background-color: var(--accent); }
+        .nav-menu a:hover:not(.active) { background: var(--glass-border); }
+
+        .user-info { display: flex; align-items: center; gap: 10px; padding-left: 10px; border-left: 1px solid var(--glass-border); }
+        .user-badge { background-color: #333; padding: 0.3rem 0.8rem; border-radius: 1rem; font-size: 0.8rem; font-weight: bold; color: var(--accent); }
+        
+        .logout-btn { 
+            background: none; border: 1px solid var(--accent); color: var(--accent); 
+            padding: 0.4rem 1rem; border-radius: 2rem; cursor: pointer; transition: 0.3s; 
+        }
+        .logout-btn:hover { background: var(--accent); color: white; }
+
+        /* Content Area */
+        .main-content { margin-top: 85px; padding: 2rem; max-width: 1600px; margin-left: auto; margin-right: auto; }
+
+        /* Modal & Lightbox */
+        .modal, .lightbox { 
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; 
+            background: rgba(0, 0, 0, 0.95); z-index: 2000; justify-content: center; align-items: center; 
+        }
+        .modal.active, .lightbox.active { display: flex; }
+        .modal-content { width: 90%; max-width: 1100px; position: relative; }
+        .modal-close, .lightbox-close { 
+            position: absolute; top: -45px; right: 0; color: white; 
+            font-size: 2.5rem; background: none; border: none; cursor: pointer; 
+        }
+        video { width: 100%; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); background: #000; }
+        #lightboxImg { max-width: 90%; max-height: 90%; border-radius: 8px; }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            .navbar { padding: 0.75rem 1rem; flex-wrap: wrap; }
+            .nav-brand { font-size: 1.2rem; }
+            .nav-search { order: 3; flex: 1 1 100%; margin: 10px 0 0 0; }
+            .main-content { margin-top: 140px; padding: 1rem; }
+            .nav-menu { gap: 0.5rem; }
+            .nav-menu a { padding: 0.4rem 0.8rem; font-size: 0.9rem; }
+            .user-info span { display: none; }
+        }
+    </style>
+    {% block extra_styles %}{% endblock %}
+</head>
+<body>
+    {% if current_user.is_authenticated %}
+    <nav class="navbar">
+        <a href="{{ url_for('home') }}" class="nav-brand">Local Hub</a>
+        
+        <div class="nav-search">
+            <input type="text" id="searchInput" placeholder="Search movies or photos..." onkeyup="filterContent()">
+        </div>
+
+        <div class="nav-menu">
+            <a href="{{ url_for('home') }}" class="{% if request.endpoint == 'home' %}active{% endif %}">Videos</a>
+            <a href="{{ url_for('gallery') }}" class="{% if request.endpoint == 'gallery' %}active{% endif %}">Gallery</a>
+            
+            <div class="user-info">
+                <span class="user-badge">{{ current_user.id|upper }}</span>
+                <button data-url="{{ url_for('logout') }}" 
+                        onclick="window.location.href=this.dataset.url" 
+                        class="logout-btn">
+                    Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <main class="main-content">
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <div style="background: rgba(255, 0, 0, 0.2); border: 1px solid var(--accent); padding: 12px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                  {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <div id="videoModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeVideoModal()">&times;</button>
+            <video id="modalVideo" controls controlsList="nodownload" preload="none"></video>
+        </div>
+    </div>
+
+    <div id="lightbox" class="lightbox">
+        <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+        <img id="lightboxImg" src="" alt="Gallery Image">
+    </div>
+
+    <script>
+        // Search Filter Logic
+        function filterContent() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const cards = document.querySelectorAll('.video-card, .image-card');
+
+            cards.forEach(card => {
+                const title = card.getAttribute('data-title') || "";
+                if (title.toLowerCase().includes(searchTerm)) {
+                    card.style.display = "";
+                } else {
+                    card.style.display = "none";
+                }
+            });
+        }
+
+        // Video Modal Controls
+        function openVideoModal(videoUrl) {
+            const modal = document.getElementById('videoModal');
+            const video = document.getElementById('modalVideo');
+            video.src = videoUrl;
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            video.play();
+        }
+
+        function closeVideoModal() {
+            const modal = document.getElementById('videoModal');
+            const video = document.getElementById('modalVideo');
+            video.pause();
+            video.src = '';
+            modal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Gallery Lightbox Controls
+        function openLightbox(imgSrc) {
+            const lightbox = document.getElementById('lightbox');
+            const img = document.getElementById('lightboxImg');
+            img.src = imgSrc;
+            lightbox.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox() {
+            const lightbox = document.getElementById('lightbox');
+            document.getElementById('lightboxImg').src = '';
+            lightbox.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close UI on Background Click
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) closeVideoModal();
+            if (event.target.classList.contains('lightbox')) closeLightbox();
+        }
+
+        // Escape Key Support
+        document.addEventListener('keydown', (e) => {
+            if (e.key === "Escape") { closeVideoModal(); closeLightbox(); }
+        });
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

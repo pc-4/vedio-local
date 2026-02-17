@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section>
+    <div class="section-header">
+        <h2 class="section-title">Image Gallery</h2>
+    </div>
+
+    <div class="image-grid">
+        {% for image in images %}
+        <div class="image-card" 
+             data-title="{{ image.title|lower }}"
+             data-img-url="{{ url_for('serve_image', filename=image.name) }}" 
+             onclick="openLightbox(this.dataset.imgUrl)">
+            
+            <img src="{{ url_for('serve_image', filename=image.name) }}" 
+                 alt="{{ image.title }}"
+                 loading="lazy"
+                 data-default-src="{{ url_for('static', filename='image/default.jpg') }}"
+                 onerror="this.src=this.dataset.defaultSrc; this.onerror=null;">
+        </div>
+        {% else %}
+        <p style="grid-column: 1/-1; text-align: center; color: var(--text-secondary); padding: 3rem;">
+            No images found. Add images to the images folder.
+        </p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Link the search bar to the image gallery
+    const gallerySearchInput = document.getElementById('searchInput');
+    const imageCards = document.querySelectorAll('.image-card');
+
+    if (gallerySearchInput) {
+        gallerySearchInput.placeholder = "Search images...";
+        gallerySearchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase().trim();
+            imageCards.forEach(card => {
+                const title = card.dataset.title || "";
+                card.style.display = title.includes(searchTerm) ? '' : 'none';
+            });
+        });
+    }
+</script>
+{% endblock %}

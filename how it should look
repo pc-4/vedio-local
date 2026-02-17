@@ -1,0 +1,29 @@
+VEDIO-LOCAL
+        |_assets(it is a folder)
+        |   |_image(it is a folder)
+        |   |_thubnail(it is a folder)
+        |   |_vedios(it is a folder)
+        |_templates(it is a folder)
+        |   |_index.html
+        |   |_home.html
+        |   |_image.html
+        |
+        |_app.py
+note
+ project name local hub 
+requirment 
+1server  should work in mobile 
+2at  first it should open index.html which will show a box name welcome to local hub let me know who you are by enterning user name and password than it will open home.html
+3 it should be capabale to generate thubnail and store it in thubnail folder also it should be able to check if thubnail exist it will not create aggain
+4 home.html should have nev bar to search vedio and also user profile tere will be normal user group user admin useer exclusive user also it will have a button in nav bar which will take user to image.html
+5 untill user is verified nont send vedio data also user should not be avale to downlode any vedio only admin user can 
+6 also in index.html aLL predefine user name and password will be checked but when using concole or any they should not be able to know use password and user name 
+
+
+
+
+-----------------------------------------------------------------------------------------------------------
+User Group,Username,Password,Permission Level
+Admin,admin,admin789,Full access + Download rights
+Exclusive,exclusive,excl123,View only (No download)
+Normal User,user,user123,View only (No download)
