@@ -1,46 +1,233 @@
 {% extends "base.html" %}
 
 {% block content %}
-<section>
+<section class="gallery-container">
     <div class="section-header">
-        <h2 class="section-title">Image Gallery</h2>
+        <h2 class="section-title">Visual Library</h2>
+        <p class="section-subtitle">Click any image to expand</p>
     </div>
 
     <div class="image-grid">
         {% for image in images %}
         <div class="image-card" 
              data-title="{{ image.title|lower }}"
-             data-img-url="{{ url_for('serve_image', filename=image.name) }}" 
-             onclick="openLightbox(this.dataset.imgUrl)">
+             data-full-url="{{ url_for('serve_image', filename=image.name) }}"
+             onclick="openLightbox(this)">
             
-            <img src="{{ url_for('serve_image', filename=image.name) }}" 
-                 alt="{{ image.title }}"
-                 loading="lazy"
-                 data-default-src="{{ url_for('static', filename='image/default.jpg') }}"
-                 onerror="this.src=this.dataset.defaultSrc; this.onerror=null;">
+            <div class="image-wrapper">
+                <img src="{{ url_for('serve_image', filename=image.name) }}" 
+                     alt="{{ image.title }}"
+                     loading="lazy"
+                     class="gallery-thumb"
+                     data-default-src="{{ url_for('static', filename='image/default.jpg') }}"
+                     onerror="this.src=this.dataset.defaultSrc; this.onerror=null;">
+                <div class="image-overlay">
+                    <span>View Full Size</span>
+                </div>
+            </div>
+            <div class="image-info">
+                <p class="image-name">{{ image.title }}</p>
+            </div>
         </div>
         {% else %}
-        <p style="grid-column: 1/-1; text-align: center; color: var(--text-secondary); padding: 3rem;">
-            No images found. Add images to the images folder.
-        </p>
+        <div class="no-results">
+            <p>No images found in your collection.</p>
+        </div>
         {% endfor %}
     </div>
 </section>
+
+<div id="imageLightbox" class="lightbox" onclick="closeLightbox()">
+    <button class="close-btn" aria-label="Close">&times;</button>
+    
+    <div id="lightboxLoader" class="loader"></div>
+
+    <div class="lightbox-wrapper">
+        <img class="lightbox-content" id="bigImage" onload="hideLoader()">
+    </div>
+</div>
+
+<style>
+    :root {
+        --overlay-bg: rgba(0, 0, 0, 0.92);
+        --accent-color: #3498db;
+        --card-bg: #fff;
+        --text-main: #333;
+    }
+
+    /* Grid Styling */
+    .image-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 25px;
+        padding: 20px;
+    }
+
+    .image-card {
+        background: var(--card-bg);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        cursor: pointer;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .image-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+    /* Zoom Effect on Hover */
+    .image-wrapper {
+        position: relative;
+        height: 200px;
+        overflow: hidden;
+    }
+
+    .gallery-thumb {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.5s ease;
+    }
+
+    .image-card:hover .gallery-thumb {
+        transform: scale(1.1);
+    }
+
+    /* Hover Overlay */
+    .image-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0,0,0,0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        color: white;
+        font-weight: bold;
+    }
+
+    .image-card:hover .image-overlay {
+        opacity: 1;
+    }
+
+    .image-info {
+        padding: 12px;
+        text-align: center;
+        font-weight: 500;
+        color: var(--text-main);
+    }
+
+    /* Lightbox Styles */
+    .lightbox {
+        display: none;
+        position: fixed;
+        z-index: 9999;
+        inset: 0;
+        background-color: var(--overlay-bg);
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        animation: fadeIn 0.3s ease;
+    }
+
+    .lightbox-wrapper {
+        position: relative;
+        max-width: 90%;
+        max-height: 85%;
+    }
+
+    .lightbox-content {
+        display: block;
+        max-width: 100%;
+        max-height: 85vh;
+        margin: auto;
+        border-radius: 4px;
+        box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    }
+
+    /* The "Cross" Button */
+    .close-btn {
+        position: absolute;
+        top: 20px;
+        right: 30px;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 50px;
+        cursor: pointer;
+        line-height: 1;
+    }
+
+    .close-btn:hover { color: #ccc; }
+
+    /* Loading Spinner */
+    .loader {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid var(--accent-color);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        position: absolute;
+    }
+
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .no-results { grid-column: 1/-1; text-align: center; padding: 50px; opacity: 0.7; }
+</style>
 {% endblock %}
 
 {% block extra_scripts %}
 <script>
-    // Link the search bar to the image gallery
+    const lightbox = document.getElementById('imageLightbox');
+    const bigImg = document.getElementById('bigImage');
+    const loader = document.getElementById('lightboxLoader');
+
+    function openLightbox(card) {
+        const fullUrl = card.getAttribute('data-full-url');
+        
+        // Reset and show
+        bigImg.style.display = 'none';
+        loader.style.display = 'block';
+        lightbox.style.display = 'flex';
+        
+        // Set source
+        bigImg.src = fullUrl;
+        
+        // Prevent background scrolling
+        document.body.style.overflow = 'hidden';
+    }
+
+    function hideLoader() {
+        loader.style.display = 'none';
+        bigImg.style.display = 'block';
+    }
+
+    function closeLightbox() {
+        lightbox.style.display = 'none';
+        bigImg.src = ""; // Clear src to save memory
+        document.body.style.overflow = 'auto';
+    }
+
+    // Keyboard Support: Press Escape to close
+    document.addEventListener('keydown', (e) => {
+        if (e.key === "Escape") closeLightbox();
+    });
+
+    // Search bar logic
     const gallerySearchInput = document.getElementById('searchInput');
     const imageCards = document.querySelectorAll('.image-card');
 
     if (gallerySearchInput) {
-        gallerySearchInput.placeholder = "Search images...";
         gallerySearchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase().trim();
+            const term = e.target.value.toLowerCase().trim();
             imageCards.forEach(card => {
-                const title = card.dataset.title || "";
-                card.style.display = title.includes(searchTerm) ? '' : 'none';
+                const title = card.getAttribute('data-title');
+                card.style.display = title.includes(term) ? 'block' : 'none';
             });
         });
     }

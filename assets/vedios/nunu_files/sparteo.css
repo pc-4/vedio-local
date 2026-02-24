@@ -1,0 +1,18 @@
+﻿/*Oppsett for Sparteo Ads*/
+#mainLeaderboard {height:250px}
+#footer-skyscraper {display:none;}
+#vidpos {display:none;}
+.sidesection:has(#upperfeatureshowcaselink) {margin-top:0px !important;}
+#bottomads {display:none;}
+#exercise_main_leaderboard {display:none;}
+#stickyadcontainer {z-index: 1;}
+@media screen and (max-width:767px) {
+  #mainLeaderboard {max-height:55px;}
+  #stickyadcontainer {display:none;}
+}
+@media screen and (min-width:1024px) {
+  #tryitLeaderboard {display:none !important;}
+  .trytopnav {top:0px !important;}
+  #container {top:44px !important;}
+  .trytopnav, #container {width: calc(100% - 250px) !important; } 
+}
