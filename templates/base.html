@@ -92,7 +92,14 @@
         <div class="nav-menu">
             <a href="{{ url_for('home') }}" class="{% if request.endpoint == 'home' %}active{% endif %}">Videos</a>
             <a href="{{ url_for('gallery') }}" class="{% if request.endpoint == 'gallery' %}active{% endif %}">Gallery</a>
-            
+            <a href="{{ url_for('free_creator') }}" class="{% if request.endpoint == 'free_creator' %}active{% endif %}">Free Creator</a>
+            <a href="{{ url_for('paid_creator') }}" class="{% if request.endpoint == 'paid_creator' %}active{% endif %}">Paid Creator</a>
+            {% if session.get('is_admin') %}
+            <a href="{{ url_for('admin_panel') }}" class="{% if request.endpoint == 'admin_panel' %}active{% endif %}">Admin</a>
+            {% else %}
+            <a href="{{ url_for('admin_login') }}" class="{% if request.endpoint == 'admin_login' %}active{% endif %}">Admin Login</a>
+            {% endif %}
+
             <div class="user-info">
                 <span class="user-badge">{{ current_user.id|upper }}</span>
                 <button data-url="{{ url_for('logout') }}" 
