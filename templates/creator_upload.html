@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<section style="max-width: 700px; margin: 0 auto; background:#1f1f1f; padding:22px; border-radius:12px;">
+  <h2 style="margin-bottom: 12px; text-transform: capitalize;">{{ plan_name }} creator upload</h2>
+  <p style="margin-bottom: 16px; color:#aaa;">Upload video or image. It will stay in pending queue until admin approves it.</p>
+  <form method="post" enctype="multipart/form-data">
+    <input type="file" name="media_file" accept="video/*,image/*" required
+           style="display:block; margin-bottom: 16px;">
+    <button type="submit" style="padding:10px 16px; border:none; border-radius:8px; background:#ff0000; color:white; cursor:pointer;">Upload</button>
+  </form>
+</section>
+{% endblock %}
