@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2 style="margin-bottom: 16px;">Admin Panel</h2>
+
+<div style="display:grid; grid-template-columns: repeat(auto-fit,minmax(320px,1fr)); gap:20px;">
+  <section style="background:#1f1f1f; padding:16px; border-radius:10px;">
+    <h3 style="margin-bottom: 12px;">Pending Media</h3>
+    {% for file in pending_files %}
+      <div style="border:1px solid #333; border-radius:8px; padding:10px; margin-bottom:10px;">
+        <strong>{{ file }}</strong>
+        <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px;">
+          <form method="post" action="{{ url_for('approve_media') }}">
+            <input type="hidden" name="filename" value="{{ file }}">
+            <button type="submit">Approve</button>
+          </form>
+          <form method="post" action="{{ url_for('delete_media') }}">
+            <input type="hidden" name="filename" value="{{ file }}">
+            <input type="hidden" name="location" value="pending">
+            <button type="submit">Delete</button>
+          </form>
+          <form method="post" action="{{ url_for('rename_media') }}" style="display:flex; gap:6px;">
+            <input type="hidden" name="filename" value="{{ file }}">
+            <input type="hidden" name="location" value="pending">
+            <input type="text" name="new_name" placeholder="new-name.mp4" required>
+            <button type="submit">Rename</button>
+          </form>
+        </div>
+      </div>
+    {% else %}
+      <p style="color:#aaa;">No pending files.</p>
+    {% endfor %}
+  </section>
+
+  <section style="background:#1f1f1f; padding:16px; border-radius:10px;">
+    <h3 style="margin-bottom: 12px;">Approved Media</h3>
+    {% for file in approved_files %}
+      <div style="border:1px solid #333; border-radius:8px; padding:10px; margin-bottom:10px;">
+        <strong>{{ file }}</strong>
+        <div style="margin-top:10px; display:flex; flex-wrap:wrap; gap:8px;">
+          {% set ext = file.rsplit('.', 1)[-1].lower() %}
+          {% if ext in ['jpg','jpeg','png','webp','gif'] %}
+          <a href="{{ url_for('serve_image', filename=file) }}" target="_blank">View</a>
+          {% else %}
+          <a href="{{ url_for('stream_video', filename=file) }}" target="_blank">View</a>
+          {% endif %}
+          <form method="post" action="{{ url_for('delete_media') }}">
+            <input type="hidden" name="filename" value="{{ file }}">
+            <input type="hidden" name="location" value="approved">
+            <button type="submit">Delete</button>
+          </form>
+          <form method="post" action="{{ url_for('rename_media') }}" style="display:flex; gap:6px;">
+            <input type="hidden" name="filename" value="{{ file }}">
+            <input type="hidden" name="location" value="approved">
+            <input type="text" name="new_name" placeholder="new-name.mp4" required>
+            <button type="submit">Rename</button>
+          </form>
+        </div>
+      </div>
+    {% else %}
+      <p style="color:#aaa;">No approved media.</p>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}
