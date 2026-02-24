@@ -1,0 +1,14 @@
+{
+  "users": [
+    {
+      "username": "admin",
+      "password": "CHANGE_ME_ADMIN_LOGIN_PASSWORD_123!",
+      "role": "admin"
+    },
+    {
+      "username": "creator",
+      "password": "CHANGE_ME_CREATOR_PASSWORD_123!",
+      "role": "user"
+    }
+  ]
+}
