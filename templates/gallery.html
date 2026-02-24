@@ -19,7 +19,7 @@
                      alt="{{ image.title }}"
                      loading="lazy"
                      class="gallery-thumb"
-                     data-default-src="{{ url_for('static', filename='image/default.jpg') }}"
+                     data-default-src="{{ url_for('serve_image', filename='default.jpg') }}"
                      onerror="this.src=this.dataset.defaultSrc; this.onerror=null;">
                 <div class="image-overlay">
                     <span>View Full Size</span>
