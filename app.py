@@ -38,6 +38,9 @@ BASE_DIR = Path(r"E:\server--\vedio-local")
 VIDEO_PATH = BASE_DIR / "assets" / "vedios"
 IMAGE_PATH = BASE_DIR / "assets" / "image"
 THUMB_PATH = BASE_DIR / "assets" / "thubnail"
+ALT_THUMB_PATH = BASE_DIR / "assets" / "thumbnail"
+if ALT_THUMB_PATH.exists() and not THUMB_PATH.exists():
+    THUMB_PATH = ALT_THUMB_PATH
 PENDING_PATH = BASE_DIR / "assets" / "not-approve-vedio"
 LOGIN_PASS_FILE = BASE_DIR / "all-pass" / "login-pass.json"
 ADMIN_PASS_FILE = BASE_DIR / "all-pass" / "adminpass.json"
@@ -47,7 +50,7 @@ IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif"}
 MEDIA_EXTENSIONS = VIDEO_EXTENSIONS | IMAGE_EXTENSIONS
 
 # Create all folders if they don't exist
-for p in [VIDEO_PATH, IMAGE_PATH, THUMB_PATH, PENDING_PATH, LOGIN_PASS_FILE.parent]:
+for p in [VIDEO_PATH, IMAGE_PATH, THUMB_PATH, ALT_THUMB_PATH, PENDING_PATH, LOGIN_PASS_FILE.parent]:
     p.mkdir(parents=True, exist_ok=True)
 
 
@@ -409,10 +412,15 @@ def serve_image(filename):
 @login_required
 def serve_thumb(filename):
     path = safe_media_path(THUMB_PATH, filename)
-    if not path.exists():
-        default_img = IMAGE_PATH / "default.jpg"
-        return send_file(default_img) if default_img.exists() else abort(404)
-    return send_file(path)
+    alt_path = safe_media_path(ALT_THUMB_PATH, filename)
+
+    if path.exists():
+        return send_file(path)
+    if alt_path.exists():
+        return send_file(alt_path)
+
+    default_img = IMAGE_PATH / "default.jpg"
+    return send_file(default_img) if default_img.exists() else abort(404)
 
 
 @app.route("/logout")
