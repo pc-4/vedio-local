@@ -1,0 +1,50 @@
+window._hbdbrk = window._hbdbrk || [];
+window._hbdbrk.push([ '_id', '55f786fc-6e0e-5368-ade6-451e5d54251d' ]);
+
+var hbdbrkElements = [];
+var st = document.createElement('script');
+var supportModule = 'noModule' in st;
+window._hbdbrk.push([ '_module', supportModule ]);
+
+var hbdbrkConfig = supportModule ? {"main":"assets/js/hbdbrk_2483d591838401533beb_m.js","style":"assets/css/hbdbrk_2483d591838401533beb.css","dependencies":[],"polyfill":["assets/js/polyfill_5c307cae73720dddd628_m.js"]} : {"main":"assets/js/hbdbrk_9d3c0e8f2f88b1f82583.js","style":"assets/css/hbdbrk_9d3c0e8f2f88b1f82583.css","dependencies":[],"polyfill":["assets/js/polyfill_cf30162b4885024cae15.js"]};
+
+try {
+  if (
+    !(window.ResizeObserver && 'IntersectionObserver' in window)
+    || !('IntersectionObserverEntry' in window)
+    || typeof document.head.after != 'function')
+  {
+    var pl = document.createElement('script');
+    pl.type = 'text/javascript';
+    pl.async = true;
+    pl.src = 'https://www.flashb.id/' + hbdbrkConfig.polyfill;
+    document.head.insertAdjacentElement('afterbegin', pl);
+  }
+} catch (e) {
+}
+
+//add main script
+st.type = 'text/javascript';
+st.async = true;
+st.src = 'https://www.flashb.id/' + hbdbrkConfig.main;
+hbdbrkElements.push(st);
+var hbdbrkDependencies = hbdbrkConfig.dependencies ? hbdbrkConfig.dependencies : [];
+
+for (var i = 0; i < hbdbrkDependencies.length; i++) {
+  var st = document.createElement('link');
+  st.rel = 'preload';
+  st.as = 'script';
+  st.href = 'https://www.flashb.id/' + hbdbrkDependencies[i];
+  hbdbrkElements.push(st);
+}
+
+if (hbdbrkConfig.style) {
+  var se = document.createElement('link');
+  se.rel = 'stylesheet';
+  se.href = 'https://www.flashb.id/' + hbdbrkConfig.style;
+  hbdbrkElements.push(se);
+}
+
+for (var p in hbdbrkElements) {
+  document.head.insertAdjacentElement('afterbegin', hbdbrkElements[p]);
+}
