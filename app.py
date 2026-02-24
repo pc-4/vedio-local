@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import os
 import secrets
@@ -5,6 +7,7 @@ import shutil
 from datetime import timedelta
 from functools import wraps
 from pathlib import Path
+from typing import Optional
 
 try:
     import cv2
@@ -32,7 +35,7 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     REMEMBER_COOKIE_HTTPONLY=True,
     PERMANENT_SESSION_LIFETIME=timedelta(hours=10),
-    MAX_CONTENT_LENGTH=1024 * 1024 * 1024,  # 1GB
+    MAX_CONTENT_LENGTH=1024 * 1024 * 1024,  # 1GB upload limit
 )
 
 # ---------------- PATH CONFIG ----------------
@@ -43,6 +46,11 @@ VIDEO_PATH = BASE_DIR / "assets" / "vedios"
 IMAGE_PATH = BASE_DIR / "assets" / "image"
 THUMB_PATH = BASE_DIR / "assets" / "thubnail"
 ALT_THUMB_PATH = BASE_DIR / "assets" / "thumbnail"   # alt spelling support
+
+# auto-switch if only alt exists
+if ALT_THUMB_PATH.exists() and not THUMB_PATH.exists():
+    THUMB_PATH = ALT_THUMB_PATH
+
 PENDING_PATH = BASE_DIR / "assets" / "not-approve-vedio"
 
 LOGIN_PASS_FILE = BASE_DIR / "all-pass" / "login-pass.json"
@@ -88,7 +96,7 @@ def load_login_users():
     raw = _read_json_file(LOGIN_PASS_FILE, default={})
     users = {}
 
-    if isinstance(raw, dict) and "users" in raw:
+    if isinstance(raw, dict) and "users" in raw and isinstance(raw["users"], list):
         entries = raw["users"]
     elif isinstance(raw, list):
         entries = raw
@@ -114,8 +122,10 @@ def load_login_users():
 def load_admin_secret():
     raw = _read_json_file(ADMIN_PASS_FILE, default={})
     if isinstance(raw, dict):
-        return str(raw.get("password") or raw.get("admin_password") or "")
-    if isinstance(raw, str):
+        password = raw.get("password") or raw.get("admin_password")
+        if password:
+            return str(password)
+    elif isinstance(raw, str):
         return raw
     return ""
 
@@ -135,8 +145,9 @@ login_manager.login_view = "login"
 @login_manager.user_loader
 def load_user(user_id: str):
     users = load_login_users()
-    if user_id in users:
-        return User(user_id, role=users[user_id]["role"])
+    user_data = users.get(user_id)
+    if user_data:
+        return User(user_id, role=user_data["role"])
     return None
 
 
@@ -162,6 +173,28 @@ def safe_media_path(base_path: Path, filename: str) -> Path:
     if base_resolved not in candidate.parents and candidate != base_resolved:
         abort(400)
     return candidate
+
+
+def find_existing_file(base_path: Path, filename: str) -> Optional[Path]:
+    """Resolve filename with compatibility fallbacks (case-insensitive + secure match)."""
+    candidate = safe_media_path(base_path, filename)
+    if candidate.exists() and candidate.is_file():
+        return candidate
+
+    requested_name = Path(filename).name
+    requested_lower = requested_name.lower()
+    requested_secure = secure_filename(requested_name).lower()
+
+    for existing in base_path.iterdir():
+        if not existing.is_file():
+            continue
+        name_lower = existing.name.lower()
+        if name_lower == requested_lower:
+            return existing
+        if secure_filename(existing.name).lower() == requested_secure:
+            return existing
+
+    return None
 
 
 def allowed_file(filename: str) -> bool:
@@ -302,7 +335,7 @@ def creator_upload(plan_name: str):
         destination = safe_media_path(PENDING_PATH, safe_name)
 
         if destination.exists():
-            flash("File already exists in pending.")
+            flash("A file with the same name already exists in pending queue.")
             return redirect(request.url)
 
         file.save(destination)
@@ -337,8 +370,12 @@ def approve_media():
     destination_base = VIDEO_PATH if media_kind(source.name) == "video" else IMAGE_PATH
     destination = safe_media_path(destination_base, source.name)
 
+    if destination.exists():
+        flash("Destination already has a file with this name.")
+        return redirect(url_for("admin_panel"))
+
     shutil.move(str(source), str(destination))
-    flash("Media approved.")
+    flash("Media approved and moved.")
     return redirect(url_for("admin_panel"))
 
 
@@ -373,7 +410,7 @@ def rename_media():
     location = request.form.get("location", "pending")
 
     if not new_name or not allowed_file(new_name):
-        flash("Invalid new name.")
+        flash("Invalid new name or extension.")
         return redirect(url_for("admin_panel"))
 
     if location == "pending":
@@ -384,8 +421,11 @@ def rename_media():
     source = safe_media_path(base, filename)
     destination = safe_media_path(base, new_name)
 
+    if not source.exists():
+        abort(404)
+
     if destination.exists():
-        flash("File already exists.")
+        flash("A file with that name already exists.")
         return redirect(url_for("admin_panel"))
 
     source.rename(destination)
@@ -396,8 +436,8 @@ def rename_media():
 @app.route("/video/<path:filename>")
 @login_required
 def stream_video(filename):
-    file_path = safe_media_path(VIDEO_PATH, filename)
-    if not file_path.exists():
+    file_path = find_existing_file(VIDEO_PATH, filename)
+    if not file_path:
         abort(404)
     return send_file(file_path, conditional=True)
 
@@ -405,12 +445,12 @@ def stream_video(filename):
 @app.route("/serve_image/<path:filename>")
 @login_required
 def serve_image(filename):
-    approved_image = safe_media_path(IMAGE_PATH, filename)
-    if approved_image.exists():
+    approved_image = find_existing_file(IMAGE_PATH, filename)
+    if approved_image:
         return send_file(approved_image)
 
-    pending_image = safe_media_path(PENDING_PATH, filename)
-    if pending_image.exists() and session.get("is_admin"):
+    pending_image = find_existing_file(PENDING_PATH, filename)
+    if pending_image and session.get("is_admin"):
         return send_file(pending_image)
 
     abort(404)
@@ -419,17 +459,18 @@ def serve_image(filename):
 @app.route("/serve_thumb/<path:filename>")
 @login_required
 def serve_thumb(filename):
-    path = safe_media_path(THUMB_PATH, filename)
-    alt_path = safe_media_path(ALT_THUMB_PATH, filename)
-
-    if path.exists():
+    path = find_existing_file(THUMB_PATH, filename)
+    if path:
         return send_file(path)
-    if alt_path.exists():
+
+    alt_path = find_existing_file(ALT_THUMB_PATH, filename)
+    if alt_path:
         return send_file(alt_path)
 
-    default_img = IMAGE_PATH / "default.jpg"
-    if default_img.exists():
+    default_img = find_existing_file(IMAGE_PATH, "default.jpg")
+    if default_img:
         return send_file(default_img)
+
     abort(404)
 
 
