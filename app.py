@@ -5,6 +5,7 @@ import shutil
 from datetime import timedelta
 from functools import wraps
 from pathlib import Path
+from typing import Optional
 
 try:
     import cv2
@@ -155,7 +156,7 @@ def safe_media_path(base_path: Path, filename: str) -> Path:
     return candidate
 
 
-def find_existing_file(base_path: Path, filename: str) -> Path | None:
+def find_existing_file(base_path: Path, filename: str) -> Optional[Path]:
     """Resolve a requested filename against disk with light compatibility fallbacks."""
     candidate = safe_media_path(base_path, filename)
     if candidate.exists() and candidate.is_file():
